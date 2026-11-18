@@ -1,0 +1,68 @@
+{
+  "layer": {
+    "name": {
+      "readonly": false,
+      "type": "STRING"
+    },
+    "rna_type": {
+      "readonly": true,
+      "type": "POINTER"
+    },
+    "strips": {
+      "readonly": true,
+      "type": "COLLECTION"
+    }
+  },
+  "slot": {
+    "active": {
+      "readonly": true,
+      "type": "BOOLEAN"
+    },
+    "handle": {
+      "readonly": true,
+      "type": "INT"
+    },
+    "identifier": {
+      "readonly": false,
+      "type": "STRING"
+    },
+    "name_display": {
+      "readonly": false,
+      "type": "STRING"
+    },
+    "rna_type": {
+      "readonly": true,
+      "type": "POINTER"
+    },
+    "select": {
+      "readonly": false,
+      "type": "BOOLEAN"
+    },
+    "show_expanded": {
+      "readonly": false,
+      "type": "BOOLEAN"
+    },
+    "target_id_type": {
+      "readonly": false,
+      "type": "ENUM"
+    },
+    "target_id_type_icon": {
+      "readonly": true,
+      "type": "INT"
+    }
+  },
+  "strip": {
+    "channelbags": {
+      "readonly": true,
+      "type": "COLLECTION"
+    },
+    "rna_type": {
+      "readonly": true,
+      "type": "POINTER"
+    },
+    "type": {
+      "readonly": true,
+      "type": "ENUM"
+    }
+  }
+}
