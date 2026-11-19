@@ -1,9 +1,9 @@
 """Animation Curves Workflow with general events and two-segment native-FK template candidate."""
 bl_info = {'name': 'Animation Curves Workflow', 'author': 'Blender AI',
-           'version': (0, 4, 3), 'blender': (5, 2, 1),
+           'version': (0, 4, 4), 'blender': (5, 2, 1),
            'location': 'View3D > Sidebar > Animation Curves',
            'category': 'Animation', 'description': 'Three-domain event editing, clip-local retime and footless two-segment FK templates (development)'}
-VERSION = '0.4.3-animation-project-clip'
+VERSION = '0.4.4-animation-project-clip'
 _REGISTERED=[]
 
 def register():

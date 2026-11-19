@@ -5,13 +5,13 @@ description: 使用 Animation Curves Workflow 创建简形角色、编辑原生�
 
 # Animation Curves Workflow
 
-适用于本仓库的 Animation Curves Workflow 0.4.3。已验证的平台基线为 Windows、Blender 5.2.1 LTS。开始前核对实际 Blender 和已启用插件版本，先保存独立工作副本。
+适用于本仓库的 Animation Curves Workflow 0.4.4。Windows Blender 5.3.0 与 5.2.1 LTS 已实测安装、双段 FK 模板、练习曲线、姿态单轴编辑与重开、只读姿态评估和四人素材复用。开始前核对实际 Blender 和已启用插件版本，先保存独立工作副本。[验收范围](https://github.com/tsist/blender-animation-curves-workflow/blob/v0.4.4/README.md)
 
 本技能随插件源码发布。动作素材由用户自己的 `.blend` 库和匹配的 `.clip.json` 提供。录屏使用可用的 FFmpeg。已有 `blenderctl` 且启用相应动画适配器时，可将其作为可选批处理入口。
 
 ## 安装与开始
 
-1. 下载或克隆仓库，将根目录下的 `animation_curves_workflow_addon` 文件夹单独压缩为 ZIP。ZIP 内第一层应为同名文件夹，其内包含 `__init__.py`。保留文件夹的全部源码文件。
+1. 下载发布页的 `animation_curves_workflow_0.4.4_windows.zip`，或将源码中的 `animation_curves_workflow_addon` 文件夹单独压缩为 ZIP。ZIP 内第一层为同名文件夹，其内包含 `__init__.py`。[下载](https://github.com/tsist/blender-animation-curves-workflow/releases/tag/v0.4.4)
 2. 在 Blender 的 Preferences → Add-ons 选择 **Install from Disk**，安装 ZIP，启用 **Animation Curves Workflow**。
 3. 在三维视口按 `N`，打开「动画曲线」侧栏。Object 模式可创建简形角色、编辑对象通道和管理素材。Pose 模式可使用受支持的自有角色姿态工具。
 4. 修改前保存检查点。需要保留未打键的手工姿态时另存副本，再执行复制 Action、改时或 Undo。

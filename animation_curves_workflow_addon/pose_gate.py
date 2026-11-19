@@ -41,7 +41,7 @@ def _discover(bpy, instance_uuid, allow_root_location=False, allow_body_colors=F
     """Dedicated in-memory writer gate. No saved/clean-source requirement.
     Does not alter or bypass the separate frozen read-only service.
     """
-    need(tuple(bpy.app.version)==(5,2,1), 'observed RNA requires Blender 5.2.1')
+    need(tuple(bpy.app.version) in {(5,2,1),(5,3,0)}, 'observed RNA requires Blender 5.2.1 or 5.3.0')
     allowed_trees=(True if allow_animated_material_trees is True
                    else set(allow_animated_material_trees))
     need(type(instance_uuid) is str and re.fullmatch('[0-9a-f]{32}',instance_uuid),'instance UUID')
