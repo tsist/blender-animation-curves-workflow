@@ -1,0 +1,5 @@
+interface:
+  display_name: "Blender 动画工作流"
+  short_description: "创建简形 FK 角色、编辑姿态、诊断支撑、编排多事件与音乐卡点、复用片段并录制视口预览"
+  default_prompt: "先用 blenderctl discover --product animation 核对入口，再在独立工作副本上完成动画编辑、复核与原生预览录制。"
+  default_prompt: "Use $blender-animation-workflow for this Blender workflow task."
