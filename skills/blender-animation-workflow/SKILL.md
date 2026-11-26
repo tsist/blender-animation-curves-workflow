@@ -82,6 +82,14 @@ $ctl = './blenderctl.ps1'
 
 录完读取作业报告，确认已编码帧数完整、零缺帧、编码器已回收，再亲自打开视频看一遍节奏、滑步与穿插。细则见 [原生实体视口录屏](references/native-preview.md)。
 
+## Blender 5.3 表演修正与转换
+
+用 blenderctl v0.64.0 的 `request` 提交 `production.run`。在 `params` 设置 `domain: "animation"`、`release: "1.0.0"`、源工程 `file` 和 `expected_sha256`，把操作放在 `request`。在 Blender 侧栏也可从 `Animation Production Request` Text 数据块执行同一操作。[插件说明](https://github.com/tsist/blender-animation-curves-workflow#53-表演修正)
+
+- 局部表演用 `correction` 新建独立 NLA 修正层，点名已有层可补键。用 `layer_state` 比较权重及静音后的原姿态。
+- 用 `slot` 传确切的 Action、Slot 和受保护帧。受管 NLA 基础层另传 `base_track`，以 Action 本地帧点名关键帧、锁定帧和采样帧。
+- 用 `transfer` 在帧段内匹配世界变换，并核对最大残差。用 `rotate` 在添加修正层前或独立活动 Action 副本中转换旋转表示，再做含子帧的冷开检查。
+
 ## 交给下游
 
 交付动画成果前，先对最终候选做一次独立冷重开核对，再把下面几样一起交给用户审看或下游（物理模拟、镜头灯光、剪辑部门）：
