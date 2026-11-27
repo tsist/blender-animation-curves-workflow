@@ -27,6 +27,8 @@ $ctl = './blenderctl.ps1'
 
 ### 2. 创建简形 FK 角色并编辑受管姿态
 
+接手已有 C94 原控件或游戏角色的普通原生 FK 骨架时，身体 FBX、原生三拍、肩带 ROM 和脚跟修正可走 Windows Blender 5.3.0 的 Rigging 专项开发候选。手调写键后，以最新状态指纹捕获工作副本，续写时指定原生 Action、Slot 和文件 SHA。 [已有角色的摆姿、动作迁移与窗口接续](https://github.com/tsist/blender-rigging-workflow/blob/main/skills/blender-rigging/references/rigging-posing-win53.md)
+
 从零排练动作或搭建占位角色时，用 `animation fk-character` 创建圆柱或无脚双段腿简形人形模板，并通过 `knees` 操作复核双膝实际几何屈曲。实体视口下开启对象颜色或材质显示，一眼分清胸前和头前的正面标记。
 
 修改受管 FK 角色的关键帧时，走 `animation pose-edit`（带上 `discover` 查出的 `--edition`）按「`inspect` → `plan` → `apply`」三步推进：
