@@ -13,7 +13,7 @@ metadata:
 
 ### 1. 准备副本并摸清工程
 
-在 `work/audit/<batch>//` 下建好独立的作业目录，复制一份私有工作副本再开工。保留原文件当对照，改坏了随时退回。
+在 `runtime/audit/<批次名>/` 下建好独立的作业目录，复制一份私有工作副本再开工。保留原文件当对照，改坏了随时退回。
 
 先跑只读检查摸清场景里的角色名、Action、Action Slot、通道和当前事件记录：
 
@@ -25,9 +25,9 @@ $ctl = './blenderctl.ps1'
 
 需要保留还没打键的手工姿态时，先另存一个检查点副本再跑编辑。编辑前把目标对象、骨骼、轴向、帧号和锁定范围写进审阅计划，核对差异符合预期再应用。
 
-### 2. 创建简形 FK 角色并编辑受管姿态
+已有 C94 原控件或游戏角色的普通原生 FK 骨架时，外部 FBX、左肩辅助、ROM、原生三拍与脚跟候选先走 `rigging-workflow phase3`。自有窗口内的手调写键后按最新状态指纹取快照，继续写键时显式绑定 Action、Slot 及工作副本 SHA。[已有角色的接片、摆姿和现场续作](https://github.com/tsist/blender-rigging-workflow/blob/main/skills/blender-rigging/references/rigging-posing-win53.md)
 
-接手已有 C94 原控件或游戏角色的普通原生 FK 骨架时，身体 FBX、原生三拍、肩带 ROM 和脚跟修正可走 Windows Blender 5.3.0 的 Rigging 专项开发候选。手调写键后，以最新状态指纹捕获工作副本，续写时指定原生 Action、Slot 和文件 SHA。 [已有角色的摆姿、动作迁移与窗口接续](https://github.com/tsist/blender-rigging-workflow/blob/main/skills/blender-rigging/references/rigging-posing-win53.md)
+### 2. 创建简形 FK 角色并编辑受管姿态
 
 从零排练动作或搭建占位角色时，用 `animation fk-character` 创建圆柱或无脚双段腿简形人形模板，并通过 `knees` 操作复核双膝实际几何屈曲。实体视口下开启对象颜色或材质显示，一眼分清胸前和头前的正面标记。
 
@@ -86,11 +86,18 @@ $ctl = './blenderctl.ps1'
 
 ## Blender 5.3 表演修正与转换
 
-用 blenderctl v0.64.0 的 `request` 提交 `production.run`。在 `params` 设置 `domain: "animation"`、`release: "1.0.0"`、源工程 `file` 和 `expected_sha256`，把操作放在 `request`。在 Blender 侧栏也可从 `Animation Production Request` Text 数据块执行同一操作。[插件说明](https://github.com/tsist/blender-animation-curves-workflow#53-表演修正)
+先用 `discover --product animation` 核对本机入口。公共 `production.run` 的 `domain` 设为 `animation`。局部表演默认用 `correction` 新建独立 NLA 修正层。点名已有层可追加键，`layer_state` 调权重和静音。直接改底层只用明确的 `slot` 请求，提供对象、Action 名、Slot identifier 和受保护帧。受管 NLA 底层另传确切 `base_track`，操作帧使用 Action 本地帧，也可点名普通 PoseBone 的原生位移、旋转和缩放通道。其他 Slot 与同槽共用者维持原绑定。
 
-- 局部表演用 `correction` 新建独立 NLA 修正层，点名已有层可补键。用 `layer_state` 比较权重及静音后的原姿态。
-- 用 `slot` 传确切的 Action、Slot 和受保护帧。受管 NLA 基础层另传 `base_track`，以 Action 本地帧点名关键帧、锁定帧和采样帧。
-- 用 `transfer` 在帧段内匹配世界变换，并核对最大残差。用 `rotate` 在添加修正层前或独立活动 Action 副本中转换旋转表示，再做含子帧的冷开检查。
+`transfer` 逐帧读源世界矩阵，可带目标帧偏移，回执对照目标矩阵误差。`rotate` 隔离目标 Action 后转换旋转表示，长弧画面用含子帧的数值检查。无法安全保留任意 NLA、共享对象、线性旋转外推或半组四元数底层时会返回冲突。不同源工程可同批并行；同一工程的修正、转换有顺序时，显式接前项工作副本。冷开核对修正层静音后底层恢复、范围外姿态及邻 Slot。[本机候选调用](<<PROJECT_ROOT>/work/blender53-production-operations/README.md>)
+
+使用 `animation production --file <绝对工程> --expected-sha256 <源指纹> --manifest <操作JSON>` 可直接提交 0.5.0 的候选作业。该命令与 `production.run` 共用后台作业、源文件保护和回执。目标曲线用精确的 `path` 和 `index` 指定，回执会列出与驱动重叠的地址。对 Rigify 生成的驱动骨骼，在绑定侧查对应的可编辑控制器。
+
+- `correction` 可设 `blend_type: "COMBINE"`。常用位移按增量填写，多分量旋转和缩放遵循 Blender 原生 NLA Combine 规则。每条曲线可设 `interpolation: "BEZIER"`，现有请求默认仍为 `LINEAR`。骨骼标量属性使用 `pose.bones["upper_arm_parent.L"]["IK_FK"]` 和 `index: 0`，自定义属性的中性值以原生属性默认值为准。
+- `graph` 点名对象和动作槽中的既有 `channels`。工具可选 `euler_filter`、`gaussian_smooth`、`butterworth_smooth`、`decimate` 或 `stepped`。`stepped` 的 `frame_step` 默认是 2。处理前后的 Action 可在候选中做对照。
+- `pose` 以骨名限定 `breakdown`、`push`、`relax` 或 `mirror_paste`。镜像需在 `options.source_bones` 单独指定来源骨骼。`motion_paths` 按选定骨骼生成或清除原生轨迹缓存。
+- `pose_asset` 用 `capture` 生成 Asset Browser 的本地 Action 位姿资产，再用 `apply` 从同工程的 `asset_name` 取姿，并在指定帧写入选定骨骼。需要从其他工程复用时，先在 Asset Browser 追加对应 Action。
+
+0.5.0 精简 ZIP 包含插件代码和运行配置。CHARGE 教学样本及冻结的支撑实验资源沿用原来的工作区资源。
 
 ## 交给下游
 
@@ -119,4 +126,5 @@ $ctl = './blenderctl.ps1'
 - [多事件工程与完整片段](references/project-and-clip-events.md)
 - [动作素材复用](references/clip-reuse.md)
 - [原生实体视口录屏](references/native-preview.md)
+- [已有 C94 与原生 FK 的身体表演](https://github.com/tsist/blender-rigging-workflow/blob/main/skills/blender-rigging/references/rigging-posing-win53.md)
 - [参考文档与证据索引](references/sources.md)

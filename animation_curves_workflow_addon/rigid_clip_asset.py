@@ -623,11 +623,10 @@ def apply_rigid_clip(context, request):
             if category not in {'collections', 'objects', 'meshes', 'actions'}:
                 _fail('UNSUPPORTED', 'Rigid apply introduced a disallowed native data type',
                       {'category': category, 'name': item.name})
-            if getattr(item, 'use_fake_user', False):
+            if item in by_asset_id.values():
+                _base._detach_clip_wrapper(item)
+            if getattr(item, 'asset_data', None) is None and getattr(item, 'use_fake_user', False):
                 item.use_fake_user = False
-            if getattr(item, 'asset_data', None) is not None \
-                    or 'asset_id' in item.keys():
-                _base._clear_asset_marks(item)
 
         frame_span = req['end'] - req['start']
         source_span = source_end - source_start

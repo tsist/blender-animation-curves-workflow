@@ -425,7 +425,6 @@ class ACW_PT_event_editor(bpy.types.Panel):
     bl_label='事件绑定与人工接续'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
-    bl_category='动画曲线'
     def draw(self,context):
         layout=self.layout
         if not _available(context):
@@ -450,18 +449,16 @@ class ACW_PT_event_editor(bpy.types.Panel):
         except Exception:layout.label(text='事件状态不可读，请查看报告',icon='ERROR')
         layout.operator('animation_curves.show_report',text='查看验证/差异报告',icon='TEXT')
         if settings.last_report:layout.label(text=settings.last_report[:100])
-        layout.label(text='精细编辑使用 Graph Editor；不替代角色/接触编排')
+        layout.label(text='曲线手柄可在曲线编辑器中精修')
 
 class ACW_PT_channel_editor(bpy.types.Panel):
     bl_idname = 'ACW_PT_channel_editor'
     bl_label = '动画曲线'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = '动画曲线'
-
     def draw(self, context):
         layout = self.layout
-        layout.label(text='通道编辑 · 开发候选')
+        layout.label(text='通道编辑')
         if not _available(context):
             layout.label(text='请在物体模式中选择目标', icon='INFO')
             return
@@ -488,15 +485,15 @@ class ACW_PT_channel_editor(bpy.types.Panel):
         layout.operator('animation_curves.inspect_channel', text='检查所选通道', icon='VIEWZOOM')
         layout.operator('animation_curves.show_report', text='查看检查报告', icon='TEXT')
         layout.label(text='精细手柄调整请用原生曲线编辑器', icon='GRAPH')
-        layout.label(text='显式事件绑定见下方面板；完整角色编排未实现', icon='INFO')
+        layout.label(text='多角色事件在「事件」阶段编排', icon='INFO')
         if settings.last_report:
             box = layout.box()
             box.label(text=settings.last_report[:100])
 
 
 _CLASSES = (ACWSettings, ACW_OT_edit_key, ACW_OT_inspect_channel,
-            ACW_OT_read_current_value, ACW_OT_show_report, ACW_PT_channel_editor,
-            ACW_OT_event_capture, ACW_OT_event_inspect, ACW_OT_event_rebind, ACW_OT_event_apply, ACW_OT_event_reset, ACW_PT_event_editor)
+            ACW_OT_read_current_value, ACW_OT_show_report,
+            ACW_OT_event_capture, ACW_OT_event_inspect, ACW_OT_event_rebind, ACW_OT_event_apply, ACW_OT_event_reset)
 # Blender's bpy.types lookup is not an identity-preserving registry for Python
 # classes. Keep the exact class objects that this module successfully registered.
 _REGISTERED_CLASSES = []

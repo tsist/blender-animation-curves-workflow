@@ -2,6 +2,7 @@
 import bpy
 from bpy.props import EnumProperty, FloatProperty
 from . import templates_native
+from ._ui_kit import apply_collection_theme, apply_node_theme, ensure_object_mode
 
 class ACW_OT_create_template(bpy.types.Operator):
     bl_idname='animation_curves.create_template'
@@ -11,12 +12,20 @@ class ACW_OT_create_template(bpy.types.Operator):
     height_m: FloatProperty(name='身高（米制数值）',default=1.8,min=.3,max=3.0)
     @classmethod
     def poll(cls,context):
-        return bool(context.scene and context.view_layer and context.mode=='OBJECT' and not context.scene.library)
+        return bool(context.scene and context.view_layer and not context.scene.library)
     def invoke(self,context,event):
         return context.window_manager.invoke_props_dialog(self)
     def execute(self,context):
         try:
-            handle=templates_native.create_template(context,self.kind,{'height_m':self.height_m})
+            with ensure_object_mode(context):
+                handle=templates_native.create_template(context,self.kind,{'height_m':self.height_m})
+            apply_collection_theme(handle['collection'], 'animation')
+            materials = {slot.material for obj in handle['parts'].values()
+                         for slot in obj.material_slots if slot.material}
+            for material in materials:
+                if material.node_tree:
+                    for node in material.node_tree.nodes:
+                        apply_node_theme(node, 'animation')
         except Exception as exc:
             self.report({'ERROR'},str(exc));return {'CANCELLED'}
         self.report({'INFO'},'已创建新实例 '+handle['instance_uuid'][:8]+'；保留原选择与时间轴')
@@ -24,8 +33,8 @@ class ACW_OT_create_template(bpy.types.Operator):
 
 class ACW_PT_templates(bpy.types.Panel):
     bl_idname='ACW_PT_templates'
-    bl_label='简形角色模板 · 开发候选'
-    bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+    bl_label='简形角色模板'
+    bl_space_type='VIEW_3D';bl_region_type='UI'
     def draw(self,context):
         layout=self.layout
         layout.operator('animation_curves.create_template',text='创建圆柱角色').kind='cylinder_v1'
@@ -37,7 +46,7 @@ class ACW_PT_templates(bpy.types.Panel):
         layout.label(text='FK 无自动 IK；不生成动作')
         layout.operator('animation_curves.check_current_knees')
 
-_CLASSES=(ACW_OT_create_template,ACW_PT_templates)
+_CLASSES=(ACW_OT_create_template,)
 _REGISTERED=[]
 def register():
     if _REGISTERED:raise RuntimeError('Template UI is already registered')

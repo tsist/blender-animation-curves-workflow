@@ -14,7 +14,7 @@ def params(opts):
  h.need(-1e6<=s<e<=1e6 and float(s*4).is_integer()and float(e*4).is_integer()and (e-s)*32+1<=4097,'1/4帧网格，最多4097采样')
  return {'start':s,'end':e,'plane_z_m':z,'sample_step':1/32,'key_step':1/4,'length_tolerance_m':1e-6,'cap_tolerance_m':1e-5}
 def gate(bpy,uid):
- w=pose_gate.discover(bpy,uid,allow_root_location=True);a=w['rig'];r=w['root']
+ w=pose_gate.discover(bpy,uid,allow_root_location=True,support_runtime=True);a=w['rig'];r=w['root']
  h.need(w['action']is None and w['slot']is None,'已有姿态Action/slot，整单拒绝')
  h.need(bpy.context.scene.unit_settings.scale_length==1,'首版仅单位比例1米')
  h.need(tuple(r.rotation_euler)==(0,0,0)and tuple(r.scale)==(1,1,1),'首版root旋转零/尺度一')
@@ -56,7 +56,7 @@ def mesh_points(bpy):
    ev=o.evaluated_get(dg);result[o.name]=[ev.matrix_world@v.co for v in ev.data.vertices]
  return result
 
-def review(bpy,request,digest,output,worker_source,checkpoint=None):
+def review(bpy,request,digest,output,worker_source,checkpoint=None,*,independent_witness=False):
  from mathutils import Vector
  from .leg_contract import signed_flexion
  h.need(bpy.app.background and Path(bpy.data.filepath).resolve()==Path(worker_source).resolve(),'仅本轮私有后台副本允许采样')
@@ -136,8 +136,16 @@ def review(bpy,request,digest,output,worker_source,checkpoint=None):
    at(bpy,before['frame']+before['subframe']);h.need(capture(bpy,a)==before,'私有预检状态未恢复')
  h.need(h.sha(request['source'])==request['source_sha256']and h.sha(worker_source)==request['source_sha256'],'源字节变化')
  r={'schema':1,'status':status,'request':request,'request_sha256':digest,'stable_digest':request['stable_digest'],'source_unchanged':True,'samples':len(plans),'rejections':reject,'same_process_disk_reopen':status=='SAMPLED_CANDIDATE_READY','continuous_proof':False,'may_apply_live':False}
- if status=='SAMPLED_CANDIDATE_READY':r.update(candidate=str(path),candidate_sha256=candidate_sha,metrics=metrics)
- service.write(output/'RESULT.json',r);(output/'REPORT.zh-CN.md').write_text('状态：'+status+'\n有限采样；非步行/通用IK。独立文件不受Ctrl+Z撤销。\n'+('同进程磁盘重开验证；非独立进程冷开。'if status=='SAMPLED_CANDIDATE_READY'else'预检未创建候选。'))
+ if status=='SAMPLED_CANDIDATE_READY':
+  r.update(candidate=str(path),candidate_sha256=candidate_sha,metrics=metrics)
+  if independent_witness:
+   r['cold_witness']={'state_sha256':service.digest(expected),'action_sha256':service.digest(expected_candidate),
+                      'action':candidate_name,'channels':len(requested),'frame':before['frame'],'subframe':before['subframe']}
+ service.write(output/'RESULT.json',r)
+ reopen=('已完成同进程磁盘核对；另查 COLD-EXIT.json 确认可独立重开。' if independent_witness else
+         '同进程磁盘重开验证；非独立进程冷开。')
+ (output/'REPORT.zh-CN.md').write_text('状态：'+status+'\n有限采样；非步行/通用IK。独立文件不受Ctrl+Z撤销。\n'+
+                                    (reopen if status=='SAMPLED_CANDIDATE_READY'else'预检未创建候选。'),encoding='utf-8')
  return r
 
 def validate_result(r,request,digest,output):
@@ -146,3 +154,24 @@ def validate_result(r,request,digest,output):
  h.need(r['status']in allowed,'结果状态')
  if r['status']=='SAMPLED_CANDIDATE_READY':
   path=Path(output)/'candidate.blend';h.need(r['candidate']==str(path)and r['same_process_disk_reopen']and h.sha(path)==r['candidate_sha256'],'候选路径/SHA')
+
+
+def verify_independent(bpy, request, result):
+ """Read back the full protected state and native candidate Action in a new process."""
+ witness=result['cold_witness']
+ h.need(bpy.app.background and not bpy.app.online_access and h.safe(bpy.data.filepath)==h.safe(result['candidate']),
+        'Independent verifier opened another file or used the wrong runtime mode')
+ h.need(h.sha(result['candidate'])==result['candidate_sha256'],'Independent candidate SHA differs')
+ h.need((bpy.context.scene.name,bpy.context.view_layer.name)==(request['scene'],request['view_layer']),
+        'Independent candidate scene or view layer differs')
+ h.need((bpy.context.scene.frame_current,bpy.context.scene.frame_subframe)==(witness['frame'],witness['subframe']),
+        'Independent candidate frame differs')
+ arm=locate(bpy,request['instance_uuid']);h.need(arm.name==request['selected_rig'],'Independent candidate rig differs')
+ action=arm.animation_data.action
+ h.need(action.name==witness['action'] and service.digest(pose_channel.action_witness(action))==witness['action_sha256'],
+        'Independent candidate Action binding or keys differ')
+ bag=action.layers[0].strips[0].channelbag(arm.animation_data.action_slot)
+ h.need(len(bag.fcurves)==witness['channels']==4,'Independent candidate has unexpected channel count')
+ state_sha256=service.digest(capture(bpy,arm))
+ h.need(state_sha256==witness['state_sha256'],'Independent candidate protected state differs')
+ return {**witness,'candidate':result['candidate'],'candidate_sha256':result['candidate_sha256'],'state_sha256':state_sha256}

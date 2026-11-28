@@ -77,12 +77,12 @@ class ACW_OT_cross_record_shift_confirm(bpy.types.Operator):
   try:store.execute(context,json.loads(self.frozen));self.report({'INFO'},'三动作与记录已同步，请保存工程');return {'FINISHED'}
   except Exception as ex:self.report({'ERROR'},str(ex));return {'CANCELLED'}
 class ACW_PT_cross_record(bpy.types.Panel):
- bl_label='双角色灯光事件 · 保存与接续';bl_idname='ACW_PT_cross_record';bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+ bl_label='双角色灯光事件 · 保存与接续';bl_idname='ACW_PT_cross_record';bl_space_type='VIEW_3D';bl_region_type='UI'
  def draw(self,context):
   l=self.layout
   for cls in (ACW_OT_cross_record_parameters,ACW_OT_cross_record_inspect,ACW_OT_cross_record_shift):l.operator(cls.bl_idname)
   l.label(text='已有Cue时禁止旧入口改写；Inspect仍可用')
 def register():
- for c in (ACW_OT_cross_record_parameters,ACW_OT_cross_record_confirm,ACW_OT_cross_record_inspect,ACW_OT_cross_record_shift,ACW_OT_cross_record_shift_confirm,ACW_PT_cross_record):bpy.utils.register_class(c);_REGISTERED_CLASSES.append(c)
+ for c in (ACW_OT_cross_record_parameters,ACW_OT_cross_record_confirm,ACW_OT_cross_record_inspect,ACW_OT_cross_record_shift,ACW_OT_cross_record_shift_confirm):bpy.utils.register_class(c);_REGISTERED_CLASSES.append(c)
 def unregister():
  while _REGISTERED_CLASSES:bpy.utils.unregister_class(_REGISTERED_CLASSES.pop())

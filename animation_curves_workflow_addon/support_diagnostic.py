@@ -21,7 +21,7 @@ def inspect(bpy,uid,side,start,end,plane_z_m=0.,step=1/32,checkpoint=None):
  need(all(type(x)in(int,float)and math.isfinite(x)for x in (start,end,plane_z_m,step)),'finite parameters')
  need(-1e6<=start<end<=1e6 and step==1/32,'bounded supported interval/step')
  count=(end-start)/step;need(count.is_integer()and count+1<=4097,'sample budget/exact grid')
- w=pose_gate.discover(bpy,uid,allow_root_location=True);arm=w['rig'];root=w['root'];scene=bpy.context.scene
+ w=pose_gate.discover(bpy,uid,allow_root_location=True,support_runtime=True);arm=w['rig'];root=w['root'];scene=bpy.context.scene
  unit=scene.unit_settings.scale_length;fps=scene.render.fps/scene.render.fps_base
  need(math.isfinite(unit)and unit>0 and math.isfinite(fps)and fps>0,'units/fps');need(w['metadata']['meters_per_blender_unit']==unit,'unit mismatch')
  # LINEAR only in this experiment: no misleading sampling across CONSTANT jumps.
@@ -53,7 +53,7 @@ def inspect(bpy,uid,side,start,end,plane_z_m=0.,step=1/32,checkpoint=None):
     rows.append({'t':t,'cap':cap,'centroid':[sum(p[j]for p in cap)/12 for j in range(3)],'cap_min_z':min(p[2]-plane_z_m for p in cap),'cap_max_z':max(p[2]-plane_z_m for p in cap),'shin_min_z':min(p[2]-plane_z_m for p in vertices),'lowest_id':min(range(24),key=lambda j:vertices[j][2]),'physical_knee_deg':angle})
    finally:eo.to_mesh_clear()
  finally:scene.frame_set(before['frame'],subframe=before['subframe'])
- need(state(bpy)==before,'read-only state restoration mismatch');pose_gate.discover(bpy,uid,allow_root_location=True)
+ need(state(bpy)==before,'read-only state restoration mismatch');pose_gate.discover(bpy,uid,allow_root_location=True,support_runtime=True)
  initial=rows[0]['cap'];paths=[0.]*12;drift=speed=0.
  for i,r in enumerate(rows):
   for j,p in enumerate(r['cap']):

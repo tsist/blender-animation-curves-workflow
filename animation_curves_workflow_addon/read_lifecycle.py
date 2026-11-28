@@ -1,20 +1,30 @@
 """Exactly one retained child, final wait and exclusive receipts."""
+from .host_compat import is_supported_host
 import json,hashlib,subprocess,time,signal,os,stat
 from pathlib import Path
 
 def need(ok,msg):
  if not ok:raise ValueError(msg)
-def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def sha(p):
+ with Path(p).open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
 def safe(p):
+ if os.name=='nt':
+  from .windows_owned import safe as windows_safe
+  return windows_safe(p)
  p=Path(p);need(p.is_absolute() and '..'not in p.parts and not any(z.is_symlink() for z in(p,*p.parents)),'redirected path');return p
 def write(p,x):
- with Path(p).open('x')as f:json.dump(x,f,indent=2,allow_nan=False)
+ with Path(p).open('x',encoding='utf-8')as f:json.dump(x,f,indent=2,allow_nan=False)
 def checks(pins):
  out={}
  for p,h in pins.items():
   try:out[p]=sha(safe(p))==h
   except BaseException:out[p]=False
  return out
+def require_observed_runtime(bpy):
+ if os.name=='nt':
+  from .windows_owned import runtime_identity
+  return runtime_identity(bpy)
+ need(is_supported_host(bpy.app.version),'Observed RNA requires Blender 5.3.0 or later')
 def wait(child,r,timeout):
  try:r['exit_code']=child.wait(timeout=timeout);r['waited']=True
  except BaseException as e:r['errors'].append(repr(e))

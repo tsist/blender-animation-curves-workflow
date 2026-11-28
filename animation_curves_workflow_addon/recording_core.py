@@ -36,6 +36,9 @@ DEFAULT_QUEUE_FRAMES = 6
 DEFAULT_CRF = 18
 DEFAULT_PRESET = "ultrafast"
 DEFAULT_THREADS = 2
+# Main-thread-confirmed local encoder for this machine.  This is only a
+# default candidate; an explicit public path or ANIMATION_FFMPEG overrides it.
+DEFAULT_FFMPEG_PATH = r"F:\ComfyUI\tools\ffmpeg\bin\ffmpeg.exe"
 _SCRIPT_SUFFIXES = {
     ".py", ".bat", ".cmd", ".ps1", ".sh",
     ".js", ".vbs", ".wsf", ".php", ".pl", ".rb",
@@ -254,8 +257,8 @@ def resolve_ffmpeg(explicit: str | os.PathLike[str] | None = "",
                    default_path: str | os.PathLike[str] | None = None) -> str:
     """Find an existing ffmpeg without installing or modifying anything.
 
-    Precedence: explicit path, ANIMATION_FFMPEG, supplied default, PATH.
-    The returned path is used only as argv[0] for the
+    Precedence: explicit public path, ANIMATION_FFMPEG, this machine's known
+    local default, PATH.  The returned path is used only as argv[0] for the
     fixed rawvideo encoder command; no arbitrary script or arguments are run.
     """
     if explicit:
@@ -270,8 +273,10 @@ def resolve_ffmpeg(explicit: str | os.PathLike[str] | None = "",
             return resolved
         raise PreflightError(
             f"{env_var} does not point to a file: {env_value}")
-    if default_path:
-        resolved = _ffmpeg_candidate(default_path, "default ffmpeg path")
+    known_default = (DEFAULT_FFMPEG_PATH
+                     if default_path is None else default_path)
+    if known_default:
+        resolved = _ffmpeg_candidate(known_default, "known local ffmpeg default")
         if resolved is not None:
             return resolved
     which = shutil.which("ffmpeg")
@@ -282,7 +287,9 @@ def resolve_ffmpeg(explicit: str | os.PathLike[str] | None = "",
         raise PreflightError(
             f"PATH ffmpeg is not a native executable: {which}")
     raise PreflightError(
-        "ffmpeg was not found in PATH; set ANIMATION_FFMPEG or pass ffmpeg_path."
+        "ffmpeg was not found; set ANIMATION_FFMPEG or pass ffmpeg_path. "
+        f"The known local default is {DEFAULT_FFMPEG_PATH}. "
+        "This candidate does not install or download ffmpeg."
     )
 
 

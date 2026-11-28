@@ -1,11 +1,14 @@
 """Independent NLA correction layers for native transform animation."""
 
+from bisect import bisect_left
 import json
 import math
+import re
 
 import bpy
 
 from . import core, native
+from .production_drivers import require_undriven
 from .contract import _number
 from .production_slot import _editable_object, _slot_bags
 
@@ -138,6 +141,11 @@ def validate_base_slot_edit(anim, state, before, after, allowed):
                         {'track': name})
 
 
+_CUSTOM_PATH = re.compile(r'(?P<owner>.*)\["(?P<key>(?:[^"\\]|\\.)+)"\]')
+_INTERPOLATIONS = {'LINEAR', 'CONSTANT', 'BEZIER'}
+_BLEND_TYPES = {'REPLACE', 'COMBINE'}
+
+
 def _channel_vector(obj, path, index):
     if not isinstance(path, str) or type(index) is not int:
         native.fail('INVALID_REQUEST', 'Channel requires a transform path and integer array index')
@@ -161,6 +169,45 @@ def _channel_vector(obj, path, index):
     return vector
 
 
+def _custom_channel(obj, path, index):
+    match = _CUSTOM_PATH.fullmatch(path)
+    if not match:
+        return None
+    prefix = match['owner']
+    key = bpy.utils.unescape_identifier(match['key'])
+    try:
+        receiver = obj.path_resolve(prefix) if prefix else obj
+    except (ValueError, TypeError, AttributeError):
+        native.fail('NOT_FOUND', 'Custom property owner does not resolve', {'path': path})
+    if not isinstance(receiver, (bpy.types.Object, bpy.types.PoseBone)):
+        native.fail('UNSUPPORTED', 'Expected an object or pose bone custom property', {'path': path})
+    owner_path = receiver.path_from_id() if receiver != obj else ''
+    if f'{owner_path}["{bpy.utils.escape_identifier(key)}"]' != path:
+        native.fail('UNSUPPORTED', 'Expected a canonical object or pose bone custom property path', {'path': path})
+    if key not in receiver:
+        native.fail('NOT_FOUND', 'Custom property does not exist', {'path': path})
+    if index != 0 or type(receiver[key]) not in (bool, int, float):
+        native.fail('UNSUPPORTED', 'Expected a scalar numeric custom property at index zero', {'path': path})
+    return receiver, key
+
+
+def _channel_value(obj, path, index):
+    custom = _custom_channel(obj, path, index) if isinstance(path, str) and type(index) is int else None
+    if custom is not None:
+        receiver, key = custom
+        return native.finite(receiver[key])
+    return native.finite(_channel_vector(obj, path, index)[index])
+
+
+def _restore_value(obj, path, index, value):
+    custom = _custom_channel(obj, path, index)
+    if custom is not None:
+        receiver, key = custom
+        receiver[key] = type(receiver[key])(value)
+    else:
+        _channel_vector(obj, path, index)[index] = value
+
+
 def _new_action(obj, name):
     action = bpy.data.actions.new(name)
     slot = action.slots.new('OBJECT', obj.name)
@@ -168,8 +215,13 @@ def _new_action(obj, name):
     return action, slot, strip.channelbag(slot, ensure=True)
 
 
-def _new_clip(anim, name, action, slot, start, end, extrapolation, *, before=None, source_range=None):
+def _new_clip(anim, name, action, slot, start, end, extrapolation, *, before=None,
+              source_range=None, blend_type='REPLACE'):
     tracks = anim.nla_tracks
+    unique_name, suffix = name, 1
+    while tracks.get(unique_name) is not None:
+        unique_name = f'{name}.{suffix:03}'
+        suffix += 1
     previous = tracks[-1] if tracks else None
     if before is not None:
         position = tracks.find(before)
@@ -178,10 +230,10 @@ def _new_clip(anim, name, action, slot, start, end, extrapolation, *, before=Non
         previous = tracks[position - 1]
     track = tracks.new(prev=previous)
     try:
-        track.name = name
+        track.name = unique_name
         clip = track.strips.new(track.name, math.floor(start), action)
         clip.action_slot = slot
-        clip.blend_type = 'REPLACE'
+        clip.blend_type = blend_type
         clip.extrapolation = extrapolation
         if source_range is not None:
             clip.action_frame_start, clip.action_frame_end = source_range
@@ -214,10 +266,14 @@ def _edit_rows(obj, channels, start, end):
         native.fail('INVALID_REQUEST', 'Provide a nonempty list of correction channels')
     rows = {}
     for row in channels:
-        if not isinstance(row, dict) or set(row) != {'path', 'index', 'keys'}:
+        required = {'path', 'index', 'keys'}
+        if not isinstance(row, dict) or required - row.keys() or row.keys() - required - {'interpolation'}:
             native.fail('INVALID_REQUEST', 'Each correction channel requires path, index and keys')
         path, index = row['path'], row['index']
-        value = native.finite(_channel_vector(obj, path, index)[index])
+        value = _channel_value(obj, path, index)
+        interpolation = row.get('interpolation', 'LINEAR')
+        if not isinstance(interpolation, str) or interpolation not in _INTERPOLATIONS:
+            native.fail('INVALID_REQUEST', 'Unsupported correction key interpolation')
         address = (path, index)
         if address in rows:
             native.fail('INVALID_REQUEST', 'Duplicate correction channel', {'channel': address})
@@ -230,7 +286,7 @@ def _edit_rows(obj, channels, start, end):
             frame = _number(key['frame'], 'key.frame')
             if not start <= frame <= end or frame in keys:
                 native.fail('INVALID_REQUEST', 'Duplicate correction key or key outside layer frame range')
-            keys[frame] = _number(key['value'], 'key.value')
+            keys[frame] = (_number(key['value'], 'key.value'), interpolation)
         rows[address] = (value, keys)
     rotation_paths = {path for path, _ in rows if path.rsplit('.', 1)[-1]
                       in ('rotation_quaternion', 'rotation_axis_angle')}
@@ -248,10 +304,11 @@ def _inventory(obj, state):
         if obj.get(_STATE) is not None:
             native.fail('CONFLICT', 'Correction track inventory was removed')
         return set()
-    if anim.use_tweak_mode or anim.drivers or not anim.use_nla:
-        native.fail('CONFLICT', 'Correction layers need enabled NLA outside tweak mode without drivers')
+    if anim.use_tweak_mode or (anim.nla_tracks and not anim.use_nla):
+        native.fail('CONFLICT', 'Correction layers need enabled NLA outside tweak mode')
     names = [name for name in [state['base'], *state['references'], *state['layers']] if name is not None]
-    if set(names) != set(anim.nla_tracks.keys()) or any(track.is_solo for track in anim.nla_tracks):
+    if (len(names) != len(anim.nla_tracks) or len(set(names)) != len(names)
+            or set(names) != set(anim.nla_tracks.keys()) or any(track.is_solo for track in anim.nla_tracks)):
         native.fail('CONFLICT', 'Unmanaged or solo NLA tracks need an explicit composition plan')
     if state['layers'] and anim.action:
         native.fail('CONFLICT', 'Active Action was assigned above managed correction layers')
@@ -301,18 +358,54 @@ def _base_range(action, slot):
     return left, right if right > left else left + 1
 
 
-def _write(bag, rows):
+def _free_handles(curve, edited_frames):
+    handles = {}
+    if curve is None:
+        return handles
+    for key in curve.keyframe_points:
+        frame = float(key.co.x)
+        index = bisect_left(edited_frames, frame - native.EPSILON)
+        if index < len(edited_frames) and edited_frames[index] <= frame + native.EPSILON:
+            continue
+        if key.handle_left_type == key.handle_right_type == 'FREE':
+            handles[frame] = key.handle_left.copy(), key.handle_right.copy()
+    return handles
+
+
+def _write(obj, bag, rows):
     for (path, index), (_, keys) in rows.items():
         row = {'candidate_bag': bag, 'spec': {'id': path, 'data_path': path, 'array_index': index}}
         curve = bag.fcurves.find(path, index=index)
         if curve and (curve.lock or curve.mute or curve.modifiers or curve.sampled_points):
             native.fail('CONFLICT', 'Correction channel has hand-edited curve controls', {'path': path})
-        for frame, value in sorted(keys.items()):
+        edited_frames = sorted(keys)
+        preserved = _free_handles(curve, edited_frames)
+        new_bezier_frames = []
+        for frame in edited_frames:
+            value, interpolation = keys[frame]
+            curve = row.get('curve', curve)
+            if interpolation == 'BEZIER' and (curve is None or native.find_key(curve, frame) is None):
+                new_bezier_frames.append(frame)
             core._apply_operation(row, {'op': 'set_key', 'frame': frame, 'value': value,
-                                        'interpolation': 'LINEAR'})
+                                        'interpolation': interpolation})
+        curve = row['curve']
+        for frame in new_bezier_frames:
+            key = native.find_key(curve, frame)
+            left, right = key.handle_left.copy(), key.handle_right.copy()
+            key.handle_left_type = key.handle_right_type = 'FREE'
+            key.handle_left, key.handle_right = left, right
+        curve.update()
+        if _CUSTOM_PATH.fullmatch(path):
+            curve.update_autoflags(obj)
+        # Blender may shorten nearby handles when a new key splits a segment.
+        # Preserve the dedicated FREE handles of unrequested correction keys.
+        for key in curve.keyframe_points:
+            handles = preserved.get(float(key.co.x))
+            if handles is not None:
+                key.handle_left, key.handle_right = handles
 
 
-def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
+def apply(obj, *, start, end, channels, layer_name=None, blend_type=None, _verify=None):
     """Create a new correction layer or apply keys to one explicitly named layer."""
     _editable_object(obj)
     start, end = _number(start, 'start'), _number(end, 'end')
@@ -321,16 +414,29 @@ def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
     state = _state(obj)
     covered = _inventory(obj, state)
     rows = _edit_rows(obj, channels, start, end)
+    require_undriven(obj, rows)
+    if blend_type is not None and (not isinstance(blend_type, str) or blend_type not in _BLEND_TYPES):
+        native.fail('INVALID_REQUEST', 'Correction blend type must be REPLACE or COMBINE')
     if layer_name is not None and layer_name not in state['layers']:
         native.fail('NOT_FOUND', 'Named correction layer does not exist', {'layer': layer_name})
+    if layer_name is not None:
+        _, existing_clip = _track(obj.animation_data, layer_name)
+        if (existing_clip.blend_type not in _BLEND_TYPES
+                or blend_type is not None and existing_clip.blend_type != blend_type):
+            native.fail('CONFLICT', 'The existing correction layer has a different blend type')
+        blend_type = existing_clip.blend_type
+    else:
+        blend_type = blend_type or 'REPLACE'
 
     binding = native.binding_state(obj)
     base_time = _base_range(binding['action'], binding['slot']) if binding['action'] else None
     original_metadata = obj.get(_STATE)
     anim = obj.animation_data_create()
+    use_nla = anim.use_nla
     tracks, actions = [], []
     prior_clip = None
     try:
+        anim.use_nla = True
         if anim.action:
             base, base_slot = anim.action, anim.action_slot
             left, right = base_time
@@ -341,12 +447,12 @@ def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
             state['base_binding'] = _clip_binding(base_clip)
             anim.action = None
 
-        missing = {address: (value, {start: value, end: value})
-                   for address, (value, keys) in rows.items() if address not in covered}
+        missing = {address: (value, {start: (value, 'LINEAR'), end: (value, 'LINEAR')})
+                   for address, (value, _) in rows.items() if address not in covered}
         if missing:
             action, slot, bag = _new_action(obj, 'Correction Reference')
             actions.append(action)
-            _write(bag, missing)
+            _write(obj, bag, missing)
             track, _ = _new_clip(anim, 'Correction Reference', action, slot, start, end, 'HOLD',
                                  before=layer_name)
             tracks.append(track)
@@ -359,21 +465,25 @@ def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
                 first, last = keys[min(keys)], keys[max(keys)]
                 keys.setdefault(start, first)
                 keys.setdefault(end, last)
-            _write(bag, rows)
-            track, clip = _new_clip(anim, 'Performance Correction', action, slot, start, end, 'NOTHING')
+            _write(obj, bag, rows)
+            track, clip = _new_clip(anim, 'Performance Correction', action, slot, start, end,
+                                    'NOTHING', blend_type=blend_type)
             tracks.append(track)
             _weight(clip, 1)
             layer_name = track.name
         else:
             _, clip = _track(anim, layer_name)
             if clip.action.name != state['layers'][layer_name] or (clip.frame_start, clip.frame_end) != (start, end):
-                native.fail('CONFLICT', 'Named correction clip binding or frame range changed')
+                native.fail('CONFLICT', 'Named correction clip binding or frame range changed', {
+                    'expected': {'action': state['layers'][layer_name], 'start': start, 'end': end},
+                    'observed': {'action': clip.action.name, 'start': clip.frame_start, 'end': clip.frame_end},
+                })
             prior_clip = (clip, clip.action, clip.action_slot)
             action = clip.action.copy()
             actions.append(action)
             slot, bag = _slot_bags(action)[clip.action_slot.identifier]
             before = native.bag_state(bag)
-            _write(bag, rows)
+            _write(obj, bag, rows)
             core._protected_curves(before, native.bag_state(bag),
                                    {address: set(keys) for address, (_, keys) in rows.items()})
             clip.action = action
@@ -383,6 +493,7 @@ def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
         if _verify is not None:
             _verify()
         return {'layer': layer_name, 'action': clip.action.name, 'start': start, 'end': end,
+                'blend_type': blend_type,
                 'channels': [{'path': path, 'index': index} for path, index in rows]}
     except Exception:
         if prior_clip:
@@ -391,6 +502,7 @@ def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
             clip.action_slot = slot
         for track in reversed(tracks):
             anim.nla_tracks.remove(track)
+        anim.use_nla = use_nla
         native.restore_binding(obj, binding)
         for action in actions:
             bpy.data.actions.remove(action)
@@ -401,7 +513,7 @@ def apply(obj, *, start, end, channels, layer_name=None, _verify=None):
             obj[_STATE] = original_metadata
         for (path, index), (value, _) in rows.items():
             if (path, index) not in covered:
-                _channel_vector(obj, path, index)[index] = value
+                _restore_value(obj, path, index, value)
         raise
 
 

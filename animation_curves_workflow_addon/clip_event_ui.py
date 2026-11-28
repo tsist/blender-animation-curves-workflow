@@ -475,8 +475,6 @@ class ACW_PT_clip_event(bpy.types.Panel):
     bl_idname = "ACW_PT_clip_event"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "动画曲线"
-
     def draw(self, context):
         layout = self.layout
         if not _available(context):
@@ -550,7 +548,7 @@ class ACW_PT_clip_event(bpy.types.Panel):
 _CLASSES = (ACWClipSettings, ACW_OT_clip_use_selection, ACW_OT_clip_pick_active,
             ACW_OT_clip_inspect,
             ACW_OT_clip_review, ACW_OT_clip_execute, ACW_OT_clip_clear_record,
-            ACW_OT_clip_fill_record, ACW_OT_clip_show_report, ACW_PT_clip_event)
+            ACW_OT_clip_fill_record, ACW_OT_clip_show_report)
 
 
 def _remove_owned_scene_settings():

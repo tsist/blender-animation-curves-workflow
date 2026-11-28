@@ -4,6 +4,7 @@ import bpy
 
 from . import core, native
 from .contract import _text, normalize_manifest
+from .production_drivers import require_undriven
 
 
 _POSE_OWNERSHIP = {'ac_instance_uuid', 'ac_template_owner', 'ac_practice_owner'}
@@ -11,7 +12,9 @@ _POSE_OWNERSHIP = {'ac_instance_uuid', 'ac_template_owner', 'ac_practice_owner'}
 
 def _editable_object(obj):
     native.local(obj)
-    if native.effective_users(obj) > 1 or len(obj.users_scene) > 1:
+    # Attached meshes, constraints and drivers legitimately reference their
+    # rig. Its scene and collection membership determine instance ownership.
+    if len(obj.users_collection) > 1 or len(obj.users_scene) > 1:
         native.fail('CONFLICT', 'Shared Object data must be isolated before editing animation',
                     {'object': obj.name})
 
@@ -120,6 +123,7 @@ def apply(manifest, *, action_name, slot_identifier, base_track=None):
         if curve and (curve.lock or curve.mute or len(curve.modifiers) or len(curve.sampled_points)):
             native.fail('CONFLICT', 'Edited channels must be unlocked, unmuted keyframes without modifiers or samples')
 
+    require_undriven(obj, allowed)
     source_state = {name: native.bag_state(row[1]) for name, row in bags.items()}
     locks = []
     for lock in manifest['locks']:

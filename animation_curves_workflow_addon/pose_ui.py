@@ -148,10 +148,10 @@ class ACW_OT_capture_pose_batch(bpy.types.Operator):
         except Exception as e:self.report({'ERROR'},str(e));return {'CANCELLED'}
         self.report({'INFO'},str(r['channels'])+'个姿态键已一次写入；未保存工程');return {'FINISHED'}
 class ACW_PT_pose_channel(bpy.types.Panel):
-    bl_idname='ACW_PT_pose_channel';bl_label='自有角色 · 姿态单轴关键帧';bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+    bl_idname='ACW_PT_pose_channel';bl_label='自有角色 · 姿态单轴关键帧';bl_space_type='VIEW_3D';bl_region_type='UI'
     def draw(self,c):
         self.layout.operator('animation_curves.capture_pose_batch');self.layout.operator('animation_curves.edit_pose_axis');self.layout.operator('animation_curves.prepare_pose_axis');self.layout.operator('animation_curves.retime_pose_action');self.layout.label(text='POSE：只选一个自有骨架和活动骨')
-_CLASSES=(ACW_OT_capture_pose_batch,ACW_OT_pose_channel,ACW_OT_prepare_pose_axis,ACW_OT_retime_action,ACW_PT_pose_channel);_REGISTERED=[]
+_CLASSES=(ACW_OT_capture_pose_batch,ACW_OT_pose_channel,ACW_OT_prepare_pose_axis,ACW_OT_retime_action);_REGISTERED=[]
 def register():
     if _REGISTERED:raise RuntimeError('Pose UI already registered')
     try:

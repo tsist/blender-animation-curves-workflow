@@ -1,4 +1,5 @@
 """Read-only structural discovery. No bpy import, writes, evaluation or apply API."""
+from ..host_compat import is_supported_host
 import hashlib
 import json
 import math
@@ -63,7 +64,7 @@ def _discover(bpy, instance_uuid, times):
     A saved clean source is hashed as observed, not matched to a legacy source pin.
     Authored structure and keys are read; physical interval evaluation stays pending.
     """
-    need(tuple(bpy.app.version) in {(5,2,1),(5,3,0)}, 'observed RNA requires Blender 5.2.1 or 5.3.0')
+    need(is_supported_host(bpy.app.version), 'Observed RNA requires Blender 5.3.0 or later')
     need(type(instance_uuid) is str and re.fullmatch('[0-9a-f]{32}',instance_uuid),'instance UUID')
     need(len(times)==4 and all(type(t) in (int,float) and math.isfinite(t) for t in times),'four finite times')
     need(times[0]<times[1]<=times[2]<times[3] and math.isfinite(times[3]-times[0]),'time ordering')

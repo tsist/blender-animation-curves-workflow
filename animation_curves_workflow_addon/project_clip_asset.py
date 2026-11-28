@@ -300,10 +300,10 @@ def apply_project_clip(context, request):
             require(category not in {"images", "textures", "cameras", "worlds", "texts"}
                     and item.library is None and item.override_library is None,
                     "Clip contains external or unsupported datablocks", "UNSUPPORTED")
-            if getattr(item, "use_fake_user", False):
+            if item == wrapper:
+                base._detach_clip_wrapper(item)
+            if getattr(item, "asset_data", None) is None and getattr(item, "use_fake_user", False):
                 item.use_fake_user = False
-            if getattr(item, "asset_data", None) is not None or "asset_id" in item.keys():
-                base._clear_asset_marks(item)
 
         for row in action_rows:
             require(clip["timing"]["start"] <= row["source_first_frame"]

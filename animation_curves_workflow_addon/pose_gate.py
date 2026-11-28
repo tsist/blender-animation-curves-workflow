@@ -1,4 +1,5 @@
 """Separate standard owned-pose structure gate. Old practice/discovery unchanged."""
+from .host_compat import is_supported_host
 import hashlib
 import json
 import math
@@ -37,11 +38,16 @@ def action_review(obj):
 
 def _discover(bpy, instance_uuid, allow_root_location=False, allow_body_colors=False,
               allow_animated_root=False, allow_hand_quaternion=False,
-              allow_animated_material_trees=(), allow_custom_material_color=False):
+              allow_animated_material_trees=(), allow_custom_material_color=False, support_runtime=False):
     """Dedicated in-memory writer gate. No saved/clean-source requirement.
     Does not alter or bypass the separate frozen read-only service.
     """
-    need(tuple(bpy.app.version) in {(5,2,1),(5,3,0)}, 'observed RNA requires Blender 5.2.1 or 5.3.0')
+    if support_runtime:
+        from . import read_lifecycle
+
+        read_lifecycle.require_observed_runtime(bpy)
+    else:
+        need(is_supported_host(bpy.app.version), 'Observed RNA requires Blender 5.3.0 or later')
     allowed_trees=(True if allow_animated_material_trees is True
                    else set(allow_animated_material_trees))
     need(type(instance_uuid) is str and re.fullmatch('[0-9a-f]{32}',instance_uuid),'instance UUID')
@@ -153,10 +159,10 @@ def _discover(bpy, instance_uuid, allow_root_location=False, allow_body_colors=F
 
 def discover(bpy, instance_uuid, *, allow_root_location=False, allow_body_colors=False,
              allow_animated_root=False, allow_hand_quaternion=False,
-             allow_animated_material_trees=(), allow_custom_material_color=False):
+             allow_animated_material_trees=(), allow_custom_material_color=False, support_runtime=False):
     try:return _discover(bpy,instance_uuid,allow_root_location,allow_body_colors,
                          allow_animated_root,allow_hand_quaternion,
-                         allow_animated_material_trees,allow_custom_material_color)
+                         allow_animated_material_trees,allow_custom_material_color,support_runtime)
     except Rejected:raise
     except (KeyError,TypeError,AttributeError,IndexError,ValueError,OSError,OverflowError) as exc:
         raise Rejected('Malformed owned pose structure: '+str(exc)) from exc

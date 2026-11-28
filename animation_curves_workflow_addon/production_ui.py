@@ -9,11 +9,11 @@ from . import production_operations
 
 class ACW_OT_production_operation(bpy.types.Operator):
     bl_idname = 'acw.production_operation'
-    bl_label = 'Run Production Operation'
-    bl_description = 'Run a Blender 5.3 correction, motion transfer, Slot edit or rotation conversion'
+    bl_label = '执行动画制作请求'
+    bl_description = '执行动作局部修正、迁移、曲线编辑或旋转转换'
     bl_options = {'REGISTER', 'UNDO'}
 
-    request_text: bpy.props.StringProperty(name='Request Text', default='Animation Production Request')
+    request_text: bpy.props.StringProperty(name='请求文本', default='Animation Production Request')
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
@@ -21,7 +21,7 @@ class ACW_OT_production_operation(bpy.types.Operator):
     def execute(self, context):
         text = bpy.data.texts.get(self.request_text)
         if text is None:
-            self.report({'ERROR'}, 'Choose an existing Text block containing the JSON request')
+            self.report({'ERROR'}, '请选择包含动画制作请求的文本数据块')
             return {'CANCELLED'}
         try:
             request = json.loads(text.as_string())
@@ -36,11 +36,9 @@ class ACW_OT_production_operation(bpy.types.Operator):
 
 
 class ACW_PT_production_operations(bpy.types.Panel):
-    bl_label = 'Production Operations'
+    bl_label = '动画制作请求'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Animation Curves'
-
     def draw(self, context):
         self.layout.operator(ACW_OT_production_operation.bl_idname)
 
@@ -49,7 +47,7 @@ _REGISTERED_CLASSES = []
 
 
 def register():
-    for cls in (ACW_OT_production_operation, ACW_PT_production_operations):
+    for cls in (ACW_OT_production_operation,):
         bpy.utils.register_class(cls)
         _REGISTERED_CLASSES.append(cls)
 

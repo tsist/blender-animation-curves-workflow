@@ -1,17 +1,17 @@
-"""Animation Curves Workflow with general events and two-segment native-FK template candidate."""
-bl_info = {'name': 'Animation Curves Workflow', 'author': 'Blender AI',
+"""Animation Curves Workflow."""
+bl_info = {'name': '动画曲线工作台', 'author': 'Blender AI',
            'version': (0, 5, 0), 'blender': (5, 3, 0),
-           'location': 'View3D > Sidebar > Animation Curves',
-           'category': 'Animation', 'description': 'Three-domain event editing, clip-local retime and footless two-segment FK templates (development)'}
+           'location': '三维视图 > 侧栏 > A·动画',
+           'category': 'Animation', 'description': '姿态曲线、脚底支撑、事件卡点与动画片段'}
 VERSION = '0.5.0-animation-production'
 _REGISTERED=[]
 
 def register():
-    from . import ui, templates_ui, support_ui, practice_ui, knee_ui, pose_ui, support_diagnostic_ui, support_solver_ui, pose_event_ui, pose_event_store_ui, cross_event_ui, cue_ui, clip_event_ui, clip_asset_ui, clip_project_ui, recording_ui, production_ui
+    from . import ui, templates_ui, support_ui, support_public_ui, practice_ui, knee_ui, pose_ui, support_diagnostic_ui, support_solver_ui, pose_event_ui, pose_event_store_ui, cross_event_ui, cue_ui, clip_event_ui, clip_asset_ui, clip_project_ui, recording_ui, production_ui, workspace_ui
     if _REGISTERED:raise RuntimeError('Animation Curves Workflow already registered')
     # Reject prior ownership before acquiring anything. A child's already-
     # registered error is not evidence that this invocation owns its classes.
-    modules=(ui,templates_ui,support_ui,practice_ui,knee_ui,pose_ui,support_diagnostic_ui,support_solver_ui,pose_event_ui,pose_event_store_ui,cross_event_ui,cue_ui,clip_event_ui,clip_asset_ui,clip_project_ui,recording_ui,production_ui)
+    modules=(ui,templates_ui,support_ui,support_public_ui,practice_ui,knee_ui,pose_ui,support_diagnostic_ui,support_solver_ui,pose_event_ui,pose_event_store_ui,cross_event_ui,cue_ui,clip_event_ui,clip_asset_ui,clip_project_ui,recording_ui,production_ui,workspace_ui)
     for module in modules:
         if (getattr(module, '_REGISTERED_CLASSES', ())
                 or getattr(module, '_REGISTERED', ())):

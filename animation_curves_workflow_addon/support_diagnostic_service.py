@@ -12,7 +12,7 @@ def parameters(side,start,end,plane):
  return {'side':side,'start':start,'end':end,'plane_z_m':plane,'step':1/32,'thresholds_relative_height':{'drift':.002,'height':.001,'speed_per_second':.01,'path':.004},'plane':'WORLD_HORIZONTAL_STATIC_FLAT_CAP','velocity':'ADJACENT_SAMPLE_AVERAGE_NOT_INSTANTANEOUS'}
 
 def witness(bpy,uid):
- w=pose_gate.discover(bpy,uid,allow_root_location=True);a=w['rig'];r=w['root']
+ w=pose_gate.discover(bpy,uid,allow_root_location=True,support_runtime=True);a=w['rig'];r=w['root']
  data={'rig':a.name,'uuid':uid,'metadata':w['metadata'],'frame':bpy.context.scene.frame_current,'subframe':bpy.context.scene.frame_subframe,'unit':bpy.context.scene.unit_settings.scale_length,'fps':bpy.context.scene.render.fps,'fps_base':bpy.context.scene.render.fps_base,'root_action':pose_channel.action_witness(r.animation_data.action)if r.animation_data and r.animation_data.action else None,'rig_action':pose_channel.action_witness(w['action'])if w['action']else None,'rig_slot':w['slot'].identifier if w['slot']else None,'root_slot':r.animation_data.action_slot.identifier if r.animation_data and r.animation_data.action_slot else None,'raw_root':{'location':list(r.location),'rotation':list(r.rotation_euler),'scale':list(r.scale)},'pose':[(p.name,list(p.location),list(p.rotation_euler),list(p.scale))for p in a.pose.bones]}
  return json.loads(json.dumps(data,allow_nan=False)),w
 

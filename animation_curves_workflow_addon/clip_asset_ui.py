@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import bpy
 from bpy.props import StringProperty, FloatProperty, FloatVectorProperty, IntProperty, EnumProperty, BoolProperty
+from ._ui_kit import apply_collection_theme, ensure_object_mode
 
 
 class ACW_OT_clip_asset_apply(bpy.types.Operator):
@@ -31,7 +32,7 @@ class ACW_OT_clip_asset_apply(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return bool(context.scene and context.view_layer and context.mode == 'OBJECT' and not context.scene.library)
+        return bool(context.scene and context.view_layer and not context.scene.library)
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -61,7 +62,12 @@ class ACW_OT_clip_asset_apply(bpy.types.Operator):
                                scale=1.0, translation=[0.0, 0.0, 0.0], yaw_quarter_turns=0)
             if self.use_source_window:
                 request['source_window'] = {'start': self.source_start, 'end': self.source_end}
-            result = clip_asset.apply_clip(context, request)
+            before = set(bpy.data.collections)
+            with ensure_object_mode(context):
+                result = clip_asset.apply_clip(context, request)
+            for collection in bpy.data.collections:
+                if collection not in before:
+                    apply_collection_theme(collection, 'animation')
             if self.set_playback_range:
                 context.scene.frame_start = int(request['start'])
                 context.scene.frame_end = int(request['end'])
@@ -77,8 +83,6 @@ class ACW_PT_clip_asset(bpy.types.Panel):
     bl_label = '动作素材复用'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = '动画曲线'
-
     def draw(self, context):
         layout = self.layout
         layout.operator('animation_curves.clip_asset_apply', icon='ASSET_MANAGER')
@@ -86,7 +90,7 @@ class ACW_PT_clip_asset(bpy.types.Panel):
         layout.label(text='细改使用原生 Graph Editor')
 
 
-_CLASSES = (ACW_OT_clip_asset_apply, ACW_PT_clip_asset)
+_CLASSES = (ACW_OT_clip_asset_apply,)
 _REGISTERED = []
 
 

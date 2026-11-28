@@ -38,10 +38,10 @@ class ACW_OT_practice_action(bpy.types.Operator):
   except Exception as e:self.report({'ERROR'},str(e));return {'CANCELLED'}
   self.report({'INFO'},'已创建 '+r['action']+'；LINEAR 三关键帧，可在原生编辑器继续编辑');return {'FINISHED'}
 class ACW_PT_practice(bpy.types.Panel):
- bl_idname='ACW_PT_practice';bl_label='自有角色 FK 练习 · 开发候选';bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+ bl_idname='ACW_PT_practice';bl_label='自有角色 FK 练习';bl_space_type='VIEW_3D';bl_region_type='UI'
  def draw(self,c):
   self.layout.operator('animation_curves.create_practice_action');self.layout.label(text='仅默认姿态；未保存的新模板也可用');self.layout.label(text='无脚 / 膝物理 0–150° / 不覆盖旧 Action')
-_CLASSES=(ACW_OT_practice_action,ACW_PT_practice);_REGISTERED=[]
+_CLASSES=(ACW_OT_practice_action,);_REGISTERED=[]
 def register():
  if _REGISTERED:raise RuntimeError('Practice UI already registered')
  try:

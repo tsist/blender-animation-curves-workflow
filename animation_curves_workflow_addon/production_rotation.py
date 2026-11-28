@@ -7,6 +7,7 @@ from mathutils import Quaternion, Vector
 
 from . import native
 from .contract import _number
+from .production_drivers import require_undriven
 from .production_motion import _find_bone, _residual, _rotation_values, _world
 from .production_slot import _editable_object, _slot_bags
 
@@ -67,8 +68,8 @@ def convert(context, obj, *, mode, bone_name=None, tolerance=2e-3, substeps=8):
     animation = obj.animation_data
     if not animation or not animation.action or not animation.action_slot:
         native.fail('NOT_FOUND', 'Rotation conversion requires an active Action Slot')
-    if animation.nla_tracks or animation.drivers or animation.use_tweak_mode:
-        native.fail('CONFLICT', 'Additional Action strips or drivers can depend on this rotation mode')
+    if animation.nla_tracks or animation.use_tweak_mode:
+        native.fail('CONFLICT', 'Additional Action strips can depend on this rotation mode')
     if receiver.constraints:
         native.fail('UNSUPPORTED', 'Constrained rotation conversion needs an independent basis check')
     action = animation.action
@@ -82,6 +83,11 @@ def convert(context, obj, *, mode, bone_name=None, tolerance=2e-3, substeps=8):
         native.fail('NOT_FOUND', 'Rotation target Slot has no channelbag')
     original_path = receiver.path_from_id(_property(old_mode))
     result_path = receiver.path_from_id(_property(mode))
+    require_undriven(obj, {
+        (receiver.path_from_id(prop), index)
+        for prop in {_property(old_mode), _property(mode)}
+        for index in range(len(getattr(receiver, prop)))
+    })
     if result_path != original_path and any(curve.data_path == result_path for curve in bag.fcurves):
         native.fail('CONFLICT', 'Destination rotation channels already contain authoring')
     curves = [curve for curve in bag.fcurves if curve.data_path == original_path]

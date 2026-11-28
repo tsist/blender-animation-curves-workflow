@@ -87,13 +87,9 @@ def evaluated_pose_gate(scene,frame,animated_camera_names=None):
         if owner and getattr(owner,'animation_data',None):
             raise WorkflowError('UNSUPPORTED','Non-object animation is outside the initial staging boundary')
     no_animation(scene)
-    if hasattr(scene,'compositor_effects'):
-        has_compositor = len(scene.compositor_effects) > 0
-    elif hasattr(scene,'compositing_node_group'):
-        has_compositor = scene.compositing_node_group is not None
-    else:
-        raise WorkflowError('UNSUPPORTED','Blender compositor API is unavailable')
-    if has_compositor or scene.sequence_editor or scene.rigidbody_world:
+    if not hasattr(scene,'compositing_node_group'):
+        raise WorkflowError('UNSUPPORTED','Expected Blender 5.2 compositor API is unavailable')
+    if scene.compositing_node_group or scene.sequence_editor or scene.rigidbody_world:
         raise WorkflowError('UNSUPPORTED','World/compositor/sequence/physics state is outside initial spatial staging')
     for obj in scene.objects:
         if obj.type!='MESH':continue

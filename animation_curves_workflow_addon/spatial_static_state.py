@@ -172,10 +172,8 @@ def field_witness(obj,budget):
 def collection_rows(items,direct,budget):
     if len(items)!=len(direct):reject('Collection-row count differs from direct links')
     states=[nested_state(item,budget) for item in items]
-    order_fields={'CollectionChild':{'sort_index'},'CollectionObject':{'sort_index','parented_sort_index'}}
     for state_row in states:
-        if (not set(state_row['scalars'])<=order_fields.get(state_row['rna_type'],set())
-                or state_row['light_linking']['scalars']!={'link_state':'INCLUDE'}):
+        if state_row['scalars'] or state_row['light_linking']['scalars']!={'link_state':'INCLUDE'}:
             reject('Nondefault collection linking requires unsupported named association')
     if states and any(v!=states[0] for v in states):reject('Nonuniform collection link state is unsupported')
     return {'policy':'UNIFORM_DEFAULT_INCLUDE_ONLY','named_links':sorted(x.name for x in direct),'count':len(items),'uniform_state':states[0] if states else None}

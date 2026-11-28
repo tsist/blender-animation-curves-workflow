@@ -1,0 +1,12 @@
+{
+  "schema": 2,
+  "resource_root": "support_resources",
+  "manifest_sha256": "8d1a2f4ba0c0e7330e37a82f408af79cbd28fa38cae100180492c474a38c9c43",
+  "source_sha256": "1866d633192e47eeed545b9191a3038bcd245bbe8ae990cbe85c6ab2855fe39a",
+  "timeout_seconds": 450,
+  "platform": {
+    "system": "Linux",
+    "machine": "x86_64"
+  },
+  "warning": "Exact reference only; root relocatable; exact supported Linux runtime required; not cross-platform."
+}

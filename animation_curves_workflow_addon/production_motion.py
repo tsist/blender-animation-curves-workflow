@@ -4,6 +4,7 @@ from mathutils import Matrix, Vector
 
 from . import native, production_layers
 from .contract import _number
+from .production_drivers import require_undriven
 
 
 def _find_bone(obj, name):
@@ -76,6 +77,14 @@ def transfer(context, source, target, *, start, end, offset=0, source_bone=None,
     if source == target and source_bone == target_bone and offset == 0:
         native.fail('INVALID_REQUEST', 'Source and target motion addresses must differ')
 
+    rotation_property = {'QUATERNION': 'rotation_quaternion', 'AXIS_ANGLE': 'rotation_axis_angle'
+                         }.get(receiver.rotation_mode, 'rotation_euler')
+    require_undriven(target, {
+        (receiver.path_from_id(attribute), index)
+        for attribute in ('location', rotation_property, 'scale')
+        for index in range(len(getattr(receiver, attribute)))
+    })
+
     scene = context.scene
     current = scene.frame_current, scene.frame_subframe
     expected = {}
@@ -118,7 +127,7 @@ def transfer(context, source, target, *, start, end, offset=0, source_bone=None,
 
     receipt = production_layers.apply(target, start=start + offset, end=end + offset,
                                       channels=list(rows.values()), layer_name=layer_name,
-                                      _verify=verify)
+                                      blend_type='REPLACE', _verify=verify)
     receipt.update(source=source.name, target=target.name, source_bone=source_bone,
                    target_bone=target_bone, frame_errors=errors, max_error=max(errors.values()))
     return receipt

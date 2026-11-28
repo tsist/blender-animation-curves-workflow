@@ -765,12 +765,9 @@ def _action_witness(action_row):
     }
 
 
-def _clear_asset_marks(item):
-    if getattr(item, "asset_data", None) is not None:
-        if hasattr(item, "asset_clear"):
-            item.asset_clear()
-        else:
-            item.asset_data = None
+def _detach_clip_wrapper(item):
+    if item.asset_data is not None:
+        item.asset_clear()
     if "asset_id" in item.keys():
         del item["asset_id"]
 
@@ -1111,11 +1108,12 @@ def apply_clip(context, request):
                 item["ac_instance_uuid"] = new_uuid
             _update_metadata(collection, structure["root"], old_uuid, new_uuid)
 
-        for category, item in _new_ids(bpy, before_map, before_node_trees):
-            if getattr(item, "use_fake_user", False):
+        wrappers = set(loaded_collections.values()) | set(loaded_lights.values())
+        for _, item in _new_ids(bpy, before_map, before_node_trees):
+            if item in wrappers:
+                _detach_clip_wrapper(item)
+            if getattr(item, "asset_data", None) is None and getattr(item, "use_fake_user", False):
                 item.use_fake_user = False
-            if getattr(item, "asset_data", None) is not None or "asset_id" in item.keys():
-                _clear_asset_marks(item)
         for actor_row in actor_rows:
             if actor_row["collection"].users != 0:
                 _fail("CONFLICT", "Loaded actor Collection is already shared",
@@ -1244,11 +1242,11 @@ def apply_clip(context, request):
             if item.library is not None or item.override_library is not None:
                 _fail("CONFLICT", "A newly loaded ID became linked/override",
                       {"name": item.name})
-            if getattr(item, "asset_data", None) is not None:
-                _fail("CONFLICT", "Asset mark survived on a new instance",
+            if item in wrappers and getattr(item, "asset_data", None) is not None:
+                _fail("CONFLICT", "Asset mark survived on a clip instance wrapper",
                       {"type": item.bl_rna.identifier, "name": item.name})
-            if "asset_id" in item.keys():
-                _fail("CONFLICT", "Imported asset_id survived on a new instance",
+            if item in wrappers and "asset_id" in item.keys():
+                _fail("CONFLICT", "Imported asset_id survived on a clip instance wrapper",
                       {"type": item.bl_rna.identifier, "name": item.name})
 
         after_action_rows = []
@@ -1317,7 +1315,7 @@ def apply_clip(context, request):
                 "Only Object, Light data, and Material node-tree Actions are transformed.",
                 "apply_clip neither saves nor renders; the caller persists the candidate.",
                 "Pre-existing data/Actions/UUIDs, scene frame range/current frame/camera are never changed.",
-                "Imported asset marks/asset_id custom properties are cleared only on new IDs; source asset IDs are retained as acw_source_asset_id on new collections/lights.",
+                "Clip wrapper IDs retain acw_source_asset_id. Nested native assets retain their asset metadata.",
                 "The original 1.8 m template rest geometry/proportions are preserved; world scale comes from the root.",
             ],
         }

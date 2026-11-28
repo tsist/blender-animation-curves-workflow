@@ -75,7 +75,7 @@ class ACW_OT_cue_inspect(bpy.types.Operator):
   try:r=validate_saved(c);self.report({'INFO'},f"Cue有效：{r['decision']['cue_id']} revision {r['event_revision']}");return {'FINISHED'}
   except Exception as ex:self.report({'ERROR'},str(ex));return {'CANCELLED'}
 class ACW_PT_cue(bpy.types.Panel):
- bl_label='显式 Cue · 首次绑定';bl_idname='ACW_PT_cue';bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+ bl_label='显式 Cue · 首次绑定';bl_idname='ACW_PT_cue';bl_space_type='VIEW_3D';bl_region_type='UI'
  def draw(self,c):
   self.layout.operator('animation_curves.cue_parameters');self.layout.operator('animation_curves.cue_inspect');self.layout.label(text='仅一次显式绑定；不分析音频')
 def register():
@@ -83,7 +83,7 @@ def register():
  if _REGISTERED_CLASSES or hasattr(bpy.types.Scene,'acw_experimental_cue'):raise RuntimeError('Cue module already registered or property occupied')
  bpy.types.Scene.acw_experimental_cue=StringProperty(default='');_OWNS_PROPERTY=True
  try:
-  for cls in (ACW_OT_cue_parameters,ACW_OT_cue_confirm,ACW_OT_cue_inspect,ACW_PT_cue):bpy.utils.register_class(cls);_REGISTERED_CLASSES.append(cls)
+  for cls in (ACW_OT_cue_parameters,ACW_OT_cue_confirm,ACW_OT_cue_inspect):bpy.utils.register_class(cls);_REGISTERED_CLASSES.append(cls)
  except BaseException:
   unregister();raise
 def unregister():

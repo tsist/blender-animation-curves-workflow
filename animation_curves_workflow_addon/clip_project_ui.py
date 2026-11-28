@@ -262,8 +262,6 @@ class ACW_PT_project(bpy.types.Panel):
     bl_idname = "ACW_PT_project"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "动画曲线"
-
     def draw(self, context):
         layout = self.layout
         if not _available(context):
@@ -298,7 +296,7 @@ class ACW_PT_project(bpy.types.Panel):
 
 
 _CLASSES = (ACWProjectSettings, ACW_OT_project_inspect, ACW_OT_project_review,
-            ACW_OT_project_select_event, ACW_OT_project_execute, ACW_OT_project_show_report, ACW_PT_project)
+            ACW_OT_project_select_event, ACW_OT_project_execute, ACW_OT_project_show_report)
 
 
 def _remove_owned_scene_settings():

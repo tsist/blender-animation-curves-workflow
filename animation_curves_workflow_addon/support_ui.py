@@ -8,6 +8,11 @@ def tick():
     try:JOB.poll()
     except BaseException as exc:
         JOB.cleanup_errors.append('tick:'+repr(exc));JOB.error=repr(exc);JOB.state='CLEANUP_PENDING'
+    redraw_view3d()
+    return .25 if JOB.state in ACTIVE or cleanup.held(JOB) else None
+
+
+def redraw_view3d():
     # Polling changes Python state only; explicitly invalidate visible panels.
     # No scene update/frame_set/operator is performed here.
     try:
@@ -20,7 +25,6 @@ def tick():
         except (ReferenceError,RuntimeError,AttributeError):
             # UI invalidation is best effort; never stop the owned-job poller.
             continue
-    return .25 if JOB.state in ACTIVE or cleanup.held(JOB) else None
 from .support_input import request
 from .templates_native import OWNER
 from .review_core import service
@@ -67,8 +71,8 @@ class ACW_OT_inspect_support_input(bpy.types.Operator):
         return {'FINISHED'}
 
 class ACW_PT_support_input(bpy.types.Panel):
-    bl_idname='ACW_PT_support_input';bl_label='左腿支撑 · 输入开发检查'
-    bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+    bl_idname='ACW_PT_support_input';bl_label='左腿支撑输入检查'
+    bl_space_type='VIEW_3D';bl_region_type='UI'
     def draw(self,context):
         self.layout.operator('animation_curves.inspect_support_input')
         self.layout.label(text='状态：'+JOB.state)
@@ -97,7 +101,7 @@ _REGISTERED=[]
 def register():
     if _REGISTERED:raise RuntimeError('Support input UI already registered')
     try:
-        for cls in (ACW_OT_inspect_support_input,ACW_OT_cancel_readonly,ACW_OT_release_readonly,ACW_PT_support_input):
+        for cls in (ACW_OT_inspect_support_input,ACW_OT_cancel_readonly,ACW_OT_release_readonly):
             bpy.utils.register_class(cls);_REGISTERED.append(cls)
     except Exception:
         unregister();raise

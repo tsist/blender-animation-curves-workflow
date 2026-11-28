@@ -71,7 +71,7 @@ class ACW_OT_cap_copy(bpy.types.Operator):
   return {'FINISHED'}
 class ACW_PT_cap_solver(bpy.types.Panel):
  bl_idname='ACW_PT_cap_solver';bl_label='双腿固定端盖 · 独立工程'
- bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+ bl_space_type='VIEW_3D';bl_region_type='UI'
  def draw(self,c):
   l=self.layout;l.operator('animation_curves.cap_precheck');l.operator('animation_curves.cap_generate');l.label(text='任务：'+JOB.state)
   l.operator('animation_curves.cancel_readonly');l.operator('animation_curves.release_readonly')
@@ -80,7 +80,7 @@ class ACW_PT_cap_solver(bpy.types.Panel):
    l.label(text={'PRECHECK_ELIGIBLE':'预检可尝试生成，尚无工程','PRECHECK_REJECTED':'区间不可达：未生成工程','SAMPLED_CANDIDATE_READY':'新工程有限采样通过（非步行）'}[r['status']])
    if r['status']=='SAMPLED_CANDIDATE_READY':l.label(text=r['candidate']);l.operator('animation_curves.cap_copy')
   if JOB.error:l.label(text=JOB.error[:100])
-CLASSES=(ACW_OT_cap_precheck,ACW_OT_cap_generate,ACW_OT_cap_copy,ACW_PT_cap_solver);_REGISTERED=[]
+CLASSES=(ACW_OT_cap_precheck,ACW_OT_cap_generate,ACW_OT_cap_copy);_REGISTERED=[]
 def register():
  try:
   for cls in CLASSES:bpy.utils.register_class(cls);_REGISTERED.append(cls)

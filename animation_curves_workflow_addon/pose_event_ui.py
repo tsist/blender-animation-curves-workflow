@@ -52,9 +52,9 @@ class ACW_OT_pose_event_confirm(bpy.types.Operator):
   try:pose_event.execute(context,json.loads(self.frozen));self.report({'INFO'},'两角色同步改时完成');return {'FINISHED'}
   except Exception as e:self.report({'ERROR'},str(e));return {'CANCELLED'}
 class ACW_PT_pose_event(bpy.types.Panel):
- bl_label='双角色转头事件 · 显式同步';bl_idname='ACW_PT_pose_event';bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+ bl_label='双角色转头事件 · 显式同步';bl_idname='ACW_PT_pose_event';bl_space_type='VIEW_3D';bl_region_type='UI'
  def draw(self,context):self.layout.operator(ACW_OT_pose_event_parameters.bl_idname)
 def register():
- for c in (ACW_OT_pose_event_parameters,ACW_OT_pose_event_confirm,ACW_PT_pose_event):bpy.utils.register_class(c);_REGISTERED_CLASSES.append(c)
+ for c in (ACW_OT_pose_event_parameters,ACW_OT_pose_event_confirm):bpy.utils.register_class(c);_REGISTERED_CLASSES.append(c)
 def unregister():
  while _REGISTERED_CLASSES:bpy.utils.unregister_class(_REGISTERED_CLASSES.pop())

@@ -19,8 +19,6 @@ class ANIMATION_NATIVE_PT_viewport_recording(bpy.types.Panel):
     bl_idname = "ANIMATION_NATIVE_PT_viewport_recording"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "动画曲线"
-
     @classmethod
     def poll(cls, context: Any) -> bool:
         return (
@@ -105,30 +103,12 @@ class ANIMATION_NATIVE_PT_viewport_recording(bpy.types.Panel):
         layout.label(text="录屏报告会标明漏帧情况")
 
 
-_CLASSES = (ANIMATION_NATIVE_PT_viewport_recording,)
+_CLASSES = ()
 
 
 def register() -> None:
     native.register()
-    registered: list[type] = []
-    try:
-        for cls in _CLASSES:
-            bpy.utils.register_class(cls)
-            registered.append(cls)
-    except BaseException:
-        for cls in reversed(registered):
-            try:
-                bpy.utils.unregister_class(cls)
-            except BaseException:
-                pass
-        native.unregister()
-        raise
 
 
 def unregister() -> None:
-    for cls in reversed(_CLASSES):
-        try:
-            bpy.utils.unregister_class(cls)
-        except BaseException:
-            pass
     native.unregister()

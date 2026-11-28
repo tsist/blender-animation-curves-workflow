@@ -36,7 +36,7 @@ class ACW_OT_support_diagnostic(bpy.types.Operator):
   self.report({'INFO'},'已启动私有副本只读采样；不会修改动作');return {'FINISHED'}
 class ACW_PT_support_diagnostic(bpy.types.Panel):
  bl_idname='ACW_PT_support_diagnostic';bl_label='小腿端盖支撑 · 只读采样'
- bl_space_type='VIEW_3D';bl_region_type='UI';bl_category='动画曲线'
+ bl_space_type='VIEW_3D';bl_region_type='UI'
  def draw(self,c):
   l=self.layout;l.operator('animation_curves.support_diagnostic');l.label(text='只读任务：'+JOB.state)
   l.operator('animation_curves.cancel_readonly');l.operator('animation_curves.release_readonly')
@@ -44,7 +44,7 @@ class ACW_PT_support_diagnostic(bpy.types.Panel):
    d=JOB.result['diagnostic'];l.label(text='采样发现支撑风险（不修复）' if d['status']=='SAMPLED_SUPPORT_FAIL' else '采样阈值通过（非连续证明）');l.label(text=', '.join(d['reasons'])or'仅采样阈值通过')
    l.label(text='漂移米：'+format(d['max_drift_m'],'.6g'));l.label(text='报告：'+str(JOB.session/'review/REPORT.zh-CN.md'))
   if JOB.error:l.label(text=JOB.error[:100])
-CLASSES=(ACW_OT_support_diagnostic,ACW_PT_support_diagnostic)
+CLASSES=(ACW_OT_support_diagnostic,)
 _REGISTERED=[]
 def register():
  if _REGISTERED:raise RuntimeError('Diagnostic UI already registered')
